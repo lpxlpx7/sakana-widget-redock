@@ -1,0 +1,478 @@
+$mobile-breakpoint: 780px;
+$ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+$ease-spring: cubic-bezier(0.34, 1.45, 0.5, 1);
+$ease-in: cubic-bezier(0.45, 0, 0.7, 0.4);
+
+:root {
+  --sakana-redock-bg: #151515;
+  --sakana-redock-fg: #f5f5f5;
+  --sakana-redock-shadow: rgba(0, 0, 0, 0.2);
+  --sakana-redock-divider: rgba(245, 245, 245, 0.22);
+}
+
+@mixin redock-surface {
+  border: 2px solid var(--sakana-redock-fg);
+  border-radius: 0;
+  background: var(--sakana-redock-bg);
+  color: var(--sakana-redock-fg);
+  box-shadow: 4px 4px 0 var(--sakana-redock-shadow);
+}
+
+@mixin redock-interactive {
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    transform 120ms ease,
+    box-shadow 120ms ease;
+
+  &:hover {
+    background: var(--sakana-redock-fg);
+    color: var(--sakana-redock-bg);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sakana-redock-bg);
+    outline-offset: 3px;
+  }
+}
+
+// press the button into its hard shadow
+@mixin redock-press($shadow: 4px) {
+  &:active {
+    transform: translate(2px, 2px);
+    box-shadow: ($shadow - 2px) ($shadow - 2px) 0 var(--sakana-redock-shadow);
+  }
+}
+
+.sakana-redock {
+  position: fixed;
+  z-index: 999;
+  width: var(--sakana-redock-size, 200px);
+  // let clicks through the empty area around the character
+  pointer-events: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+
+  :where(button) {
+    margin: 0;
+    font: inherit;
+    appearance: none;
+  }
+
+  // restyle the inner sakana widget control bar when `controls: true`
+  .sakana-widget-ctrl {
+    min-width: 0;
+    height: 28px;
+    overflow: hidden;
+    @include redock-surface;
+  }
+
+  .sakana-widget-ctrl-item {
+    width: 30px;
+    height: 24px;
+    border-right: 1px solid var(--sakana-redock-divider);
+    color: var(--sakana-redock-fg);
+
+    &:last-child {
+      border-right: 0;
+    }
+
+    &:hover,
+    &:focus-visible {
+      background: var(--sakana-redock-fg);
+      color: var(--sakana-redock-bg);
+    }
+
+    &[aria-label='Close'] {
+      display: none;
+    }
+  }
+}
+
+.sakana-redock-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform-origin: 50% 100%;
+}
+
+.sakana-redock-widget {
+  position: relative;
+  width: var(--sakana-redock-size, 200px);
+  height: var(--sakana-redock-size, 200px);
+  filter: drop-shadow(7px 9px 0 rgba(0, 0, 0, 0.16));
+  transition: filter 160ms ease;
+
+  .sakana-redock--moving & {
+    filter: drop-shadow(12px 15px 0 rgba(0, 0, 0, 0.12));
+  }
+}
+
+/* toolbar */
+
+.sakana-redock-toolbar {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  z-index: 60;
+  display: flex;
+  pointer-events: auto;
+  transform: translateX(-50%);
+  transition:
+    opacity 180ms ease,
+    transform 220ms $ease-out;
+  @include redock-surface;
+}
+
+.sakana-redock-move,
+.sakana-redock-minimize {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  @include redock-interactive;
+}
+
+.sakana-redock-move {
+  gap: 7px;
+  padding: 0 10px;
+  cursor: grab;
+  touch-action: none;
+  font:
+    800 11px/1 Arial,
+    sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  &:active,
+  .sakana-redock--moving & {
+    cursor: grabbing;
+  }
+}
+
+.sakana-redock-minimize {
+  width: 28px;
+  border-left: 1px solid var(--sakana-redock-divider);
+}
+
+// reveal the toolbar on hover for mouse users, keep it visible on touch screens
+@media (hover: hover) and (pointer: fine) {
+  .sakana-redock-toolbar {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+
+  .sakana-redock:hover .sakana-redock-toolbar,
+  .sakana-redock:focus-within .sakana-redock-toolbar,
+  .sakana-redock--moving .sakana-redock-toolbar {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* stand */
+
+.sakana-redock-stand {
+  position: relative;
+  // above the rod, below the character image
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  // pull the stand up over the rod root, so the visible rod is shorter;
+  // the slab still has to cover the rod end, 14px below the widget area
+  margin-top: calc(var(--sakana-redock-size, 200px) * -0.1 - 6px);
+}
+
+// the rod plugs into this socket
+.sakana-redock-socket {
+  width: 28px;
+  height: 12px;
+  border: 2px solid var(--sakana-redock-fg);
+  border-bottom: 0;
+  background: var(--sakana-redock-bg);
+}
+
+.sakana-redock-switch {
+  display: flex;
+  align-items: stretch;
+  min-width: 118px;
+  height: 30px;
+  padding: 0;
+  pointer-events: auto;
+  font:
+    800 11px/1 Arial,
+    sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  @include redock-surface;
+  @include redock-interactive;
+  @include redock-press;
+
+  &--swap {
+    animation: sakana-redock-bump 360ms $ease-spring;
+
+    .sakana-redock-name {
+      animation: sakana-redock-name-in 320ms $ease-out;
+    }
+
+    .sakana-redock-switch-icon .sakana-redock-icon {
+      animation: sakana-redock-flip 360ms $ease-out;
+    }
+  }
+}
+
+.sakana-redock-name {
+  flex: 1;
+  align-self: center;
+  padding: 0 10px 0 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.sakana-redock-switch-icon {
+  display: grid;
+  width: 28px;
+  place-items: center;
+  border-left: 1px solid var(--sakana-redock-divider);
+
+  .sakana-redock-switch:hover & {
+    border-left-color: rgba(21, 21, 21, 0.22);
+  }
+}
+
+/* restore chip */
+
+.sakana-redock-restore {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateX(-50%) scale(0.4);
+  @include redock-surface;
+  @include redock-interactive;
+
+  &:hover {
+    background: var(--sakana-redock-bg);
+
+    .sakana-redock-avatar {
+      transform: scale(1.12);
+    }
+
+    .sakana-redock-badge {
+      transform: translate(2px, 2px);
+    }
+  }
+}
+
+.sakana-redock-avatar {
+  position: absolute;
+  inset: 0;
+  background: no-repeat 50% 12% / 220%;
+  transition: transform 200ms $ease-out;
+}
+
+.sakana-redock-badge {
+  position: absolute;
+  right: -9px;
+  bottom: -9px;
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 2px solid var(--sakana-redock-bg);
+  background: var(--sakana-redock-fg);
+  color: var(--sakana-redock-bg);
+  transition: transform 160ms $ease-out;
+
+  .sakana-redock-icon {
+    width: 11px;
+    height: 11px;
+    stroke-width: 2.2;
+  }
+}
+
+/* minimized state */
+
+.sakana-redock--minimized {
+  .sakana-redock-body {
+    visibility: hidden;
+    opacity: 0;
+    transform: scale(0.2);
+  }
+
+  .sakana-redock-toolbar {
+    pointer-events: none;
+  }
+
+  .sakana-redock-restore {
+    pointer-events: auto;
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+
+    &:active {
+      transform: translateX(-50%) translate(2px, 2px);
+      box-shadow: 2px 2px 0 var(--sakana-redock-shadow);
+    }
+  }
+}
+
+// transitions are enabled one frame after mount, so restored state does not animate
+.sakana-redock--ready {
+  .sakana-redock-body {
+    transition:
+      transform 460ms $ease-spring,
+      opacity 200ms ease,
+      visibility 0s linear 0s;
+  }
+
+  .sakana-redock-restore {
+    transition:
+      transform 160ms $ease-in,
+      opacity 120ms ease,
+      visibility 0s linear 160ms,
+      background-color 120ms ease,
+      box-shadow 120ms ease;
+  }
+
+  &.sakana-redock--minimized {
+    .sakana-redock-body {
+      transition:
+        transform 280ms $ease-in,
+        opacity 220ms ease 60ms,
+        visibility 0s linear 280ms;
+    }
+
+    .sakana-redock-restore {
+      transition:
+        transform 420ms $ease-spring 200ms,
+        opacity 160ms ease 200ms,
+        visibility 0s linear 0s,
+        background-color 120ms ease,
+        box-shadow 120ms ease;
+    }
+  }
+}
+
+/* icons */
+
+.sakana-redock-icon {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+  stroke-width: 1.7;
+}
+
+/* animations */
+
+@keyframes sakana-redock-bump {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(0.94, 0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes sakana-redock-name-in {
+  from {
+    opacity: 0;
+    transform: translateY(60%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sakana-redock-flip {
+  from {
+    transform: rotate(-180deg);
+  }
+  to {
+    transform: rotate(0);
+  }
+}
+
+/* responsive */
+
+@media (max-width: $mobile-breakpoint) {
+  .sakana-redock {
+    width: var(--sakana-redock-mobile-size, 145px);
+  }
+
+  .sakana-redock-widget {
+    width: var(--sakana-redock-mobile-size, 145px);
+    height: var(--sakana-redock-mobile-size, 145px);
+  }
+
+  .sakana-redock-toolbar {
+    top: -20px;
+  }
+
+  .sakana-redock-move,
+  .sakana-redock-minimize {
+    height: 24px;
+  }
+
+  .sakana-redock-move {
+    padding: 0 8px;
+    font-size: 10px;
+  }
+
+  .sakana-redock-minimize {
+    width: 25px;
+  }
+
+  .sakana-redock-stand {
+    margin-top: calc(var(--sakana-redock-mobile-size, 145px) * -0.1 - 6px);
+  }
+
+  .sakana-redock-socket {
+    width: 24px;
+    height: 10px;
+  }
+
+  .sakana-redock-switch {
+    min-width: 100px;
+    height: 27px;
+    font-size: 10px;
+  }
+
+  .sakana-redock-switch-icon {
+    width: 25px;
+  }
+
+  .sakana-redock-restore {
+    width: 42px;
+    height: 42px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sakana-redock *,
+  .sakana-redock *::before,
+  .sakana-redock *::after {
+    transition-duration: 1ms !important;
+    transition-delay: 0s !important;
+    animation: none !important;
+  }
+}

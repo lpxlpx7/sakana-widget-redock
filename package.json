@@ -1,29 +1,74 @@
 {
   "name": "sakana-widget-redock",
-  "version": "0.1.0",
-  "description": "An unofficial movable and minimizable dock-style rework of Sakana Widget",
-  "license": "MIT",
-  "author": "Xiaotian",
-  "main": "sakana-redock.js",
-  "style": "sakana-redock.css",
-  "files": [
-    "sakana-redock.js",
-    "sakana-redock.css",
-    "vendor",
-    "README.md",
-    "LICENSE",
-    "THIRD_PARTY_NOTICES.md"
-  ],
+  "version": "0.2.0",
+  "description": "A movable and minimizable dock for Sakana! Widget.",
   "keywords": [
-    "sakana-widget",
-    "widget",
+    "chisato",
     "dock",
     "draggable",
-    "minimizable"
+    "lycoris-recoil",
+    "minimizable",
+    "sakana-widget",
+    "takina",
+    "widget"
   ],
-  "homepage": "https://github.com/lpxlpx7/sakana-widget-redock",
+  "homepage": "https://lpxlpx7.github.io/sakana-widget-redock/",
+  "license": "MIT",
+  "author": "Xiaotian",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lpxlpx7/sakana-widget-redock.git"
-  }
+  },
+  "files": [
+    "lib",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "unpkg": "./lib/index.umd.min.js",
+  "jsdelivr": "./lib/index.umd.min.js",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js",
+      "default": "./lib/index.js"
+    },
+    "./lib/*": "./lib/*",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
+  },
+  "scripts": {
+    "fmt": "oxfmt",
+    "lint": "oxlint",
+    "typecheck": "bun run build:lib && tsc --noEmit",
+    "test": "bun run build:lib && bun test",
+    "build:lib": "tsdown",
+    "build:umd": "bun ./build.umd.ts",
+    "build:docs": "bun ./build.docs.ts",
+    "build": "bun run build:lib && bun run build:umd && bun run build:docs",
+    "prepack": "bun run build",
+    "dev:lib": "tsdown --watch",
+    "dev:docs": "serve",
+    "dev": "bun run --parallel dev:lib dev:docs"
+  },
+  "dependencies": {
+    "sakana-widget": "^4.0.0"
+  },
+  "devDependencies": {
+    "@tsdown/css": "^0.23.0",
+    "@types/html-minifier-terser": "^7.0.2",
+    "@types/node": "^26.6.2",
+    "happy-dom": "^20.14.5",
+    "html-minifier-terser": "^7.2.0",
+    "oxfmt": "^0.70.0",
+    "oxlint": "^1.85.0",
+    "sass": "^1.105.0",
+    "serve": "^14.2.6",
+    "tsdown": "^0.23.0",
+    "typescript": "^6.0.3"
+  },
+  "packageManager": "bun@1.4.2"
 }
