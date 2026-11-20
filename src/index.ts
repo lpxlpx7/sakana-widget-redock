@@ -96,6 +96,14 @@ const TOOLBAR_SPACE = 24;
  */
 const NUDGE = 10;
 const NUDGE_LARGE = 40;
+/**
+ * how far the restore badge sticks out of the minimized chip
+ */
+const BADGE_OVERHANG = 9;
+/**
+ * pointer travel before a press on the minimized chip becomes a drag
+ */
+const DRAG_THRESHOLD = 4;
 
 function createButton(className: string, label: string, icon: string) {
   const button = document.createElement('button');
@@ -145,6 +153,9 @@ class SakanaReDock {
   private _domAvatar: HTMLElement | null = null;
 
   private _dragOffset = { x: 0, y: 0 };
+  private _dragStart = { x: 0, y: 0 };
+  private _dragging = false;
+  private _suppressClick = false;
 
   /**
    * @public
@@ -296,16 +307,49 @@ class SakanaReDock {
 
   /**
    * @private
+   * allowed range of the dock's top-left corner, so the visible part stays on screen;
+   * while minimized only the restore chip is visible, so the dock may go further out
+   */
+  private _getBounds = () => {
+    const dock = this._domDock!;
+    const width = dock.offsetWidth;
+    const height = dock.offsetHeight;
+    const restore = this._domRestore;
+
+    if (this._minimized && restore) {
+      const chipLeft = (width - restore.offsetWidth) / 2;
+      const chipTop = height - restore.offsetHeight;
+      const chipRight = chipLeft + restore.offsetWidth + BADGE_OVERHANG;
+      const chipBottom = height + BADGE_OVERHANG;
+      const minLeft = EDGE_GAP - chipLeft;
+      const minTop = EDGE_GAP - chipTop;
+      return {
+        minLeft,
+        maxLeft: Math.max(minLeft, window.innerWidth - chipRight - EDGE_GAP),
+        minTop,
+        maxTop: Math.max(minTop, window.innerHeight - chipBottom - EDGE_GAP),
+      };
+    }
+
+    const minTop = EDGE_GAP + TOOLBAR_SPACE;
+    return {
+      minLeft: EDGE_GAP,
+      maxLeft: Math.max(EDGE_GAP, window.innerWidth - width - EDGE_GAP),
+      minTop,
+      maxTop: Math.max(minTop, window.innerHeight - height - EDGE_GAP),
+    };
+  };
+
+  /**
+   * @private
    * move the dock inside the visible viewport
    */
   private _setPosition = (left: number, top: number, persist = false) => {
     const dock = this._domDock;
     if (!dock) return;
 
-    const maxLeft = Math.max(EDGE_GAP, window.innerWidth - dock.offsetWidth - EDGE_GAP);
-    const minTop = EDGE_GAP + TOOLBAR_SPACE;
-    const maxTop = Math.max(minTop, window.innerHeight - dock.offsetHeight - EDGE_GAP);
-    const safeLeft = clamp(left, EDGE_GAP, maxLeft);
+    const { minLeft, maxLeft, minTop, maxTop } = this._getBounds();
+    const safeLeft = clamp(left, minLeft, maxLeft);
     const safeTop = clamp(top, minTop, maxTop);
 
     dock.style.left = `${safeLeft}px`;
@@ -338,34 +382,56 @@ class SakanaReDock {
 
   /**
    * @private
-   * handle pointer events on the move handle
+   * drag the dock by the move handle or the minimized restore chip
    */
   private _onPointerDown = (e: PointerEvent) => {
     const dock = this._domDock;
-    const move = this._domMove;
-    if (!dock || !move || e.button !== 0) return;
+    const handle = e.currentTarget as HTMLElement | null;
+    if (!dock || !handle || e.button !== 0) return;
 
     const rect = dock.getBoundingClientRect();
     this._dragOffset = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    dock.classList.add('sakana-redock--moving');
-    move.setPointerCapture(e.pointerId);
+    this._dragStart = { x: e.clientX, y: e.clientY };
+    this._suppressClick = false;
+    // the move handle drags right away, the chip waits so a tap still restores
+    this._dragging = handle === this._domMove;
+    if (this._dragging) dock.classList.add('sakana-redock--moving');
+    handle.setPointerCapture(e.pointerId);
     e.preventDefault();
   };
 
   private _onPointerMove = (e: PointerEvent) => {
-    if (!this._domMove?.hasPointerCapture(e.pointerId)) return;
+    const dock = this._domDock;
+    const handle = e.currentTarget as HTMLElement | null;
+    if (!dock || !handle?.hasPointerCapture(e.pointerId)) return;
+
+    if (!this._dragging) {
+      const dx = e.clientX - this._dragStart.x;
+      const dy = e.clientY - this._dragStart.y;
+      if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+      this._dragging = true;
+      dock.classList.add('sakana-redock--moving');
+    }
     this._setPosition(e.clientX - this._dragOffset.x, e.clientY - this._dragOffset.y);
   };
 
   private _onPointerUp = (e: PointerEvent) => {
     const dock = this._domDock;
-    const move = this._domMove;
-    if (!dock || !move?.hasPointerCapture(e.pointerId)) return;
+    const handle = e.currentTarget as HTMLElement | null;
+    if (!dock || !handle?.hasPointerCapture(e.pointerId)) return;
 
-    move.releasePointerCapture(e.pointerId);
+    handle.releasePointerCapture(e.pointerId);
+    if (!this._dragging) return;
+
+    this._dragging = false;
     dock.classList.remove('sakana-redock--moving');
     const rect = dock.getBoundingClientRect();
     this._setPosition(rect.left, rect.top, true);
+    // a drag of the chip must not also count as a click that restores the dock
+    if (handle === this._domRestore) {
+      this._suppressClick = true;
+      window.setTimeout(() => (this._suppressClick = false), 0);
+    }
   };
 
   /**
@@ -403,6 +469,10 @@ class SakanaReDock {
   };
 
   private _onRestoreClick = () => {
+    if (this._suppressClick) {
+      this._suppressClick = false;
+      return;
+    }
     this.restore();
     this._domMove?.focus({ preventScroll: true });
   };
@@ -454,7 +524,13 @@ class SakanaReDock {
   restore = () => {
     this._minimized = false;
     this._applyMinimized();
-    if (this._domDock) this._writeState({ minimized: false });
+    const dock = this._domDock;
+    if (dock) {
+      this._writeState({ minimized: false });
+      // the chip may have been dragged where the full dock does not fit
+      const rect = dock.getBoundingClientRect();
+      this._setPosition(rect.left, rect.top, true);
+    }
     return this;
   };
 
@@ -490,6 +566,12 @@ class SakanaReDock {
     move.addEventListener('pointerup', this._onPointerUp);
     move.addEventListener('pointercancel', this._onPointerUp);
     move.addEventListener('keydown', this._onMoveKeyDown);
+    const restore = this._domRestore!;
+    restore.addEventListener('pointerdown', this._onPointerDown);
+    restore.addEventListener('pointermove', this._onPointerMove);
+    restore.addEventListener('pointerup', this._onPointerUp);
+    restore.addEventListener('pointercancel', this._onPointerUp);
+    restore.addEventListener('keydown', this._onMoveKeyDown);
     window.addEventListener('resize', this._onResize);
 
     // restore saved state without playing transitions

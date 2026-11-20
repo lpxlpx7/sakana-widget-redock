@@ -321,10 +321,23 @@ $ease-in: cubic-bezier(0.45, 0, 0.7, 0.4);
     visibility: visible;
     opacity: 1;
     transform: translateX(-50%) scale(1);
+    // tap to restore, drag to move
+    cursor: grab;
+    touch-action: none;
 
     &:active {
       transform: translateX(-50%) translate(2px, 2px);
       box-shadow: 2px 2px 0 var(--sakana-redock-shadow);
+    }
+  }
+
+  &.sakana-redock--moving .sakana-redock-restore {
+    cursor: grabbing;
+
+    &,
+    &:active {
+      transform: translateX(-50%) scale(1);
+      box-shadow: 4px 4px 0 var(--sakana-redock-shadow);
     }
   }
 }

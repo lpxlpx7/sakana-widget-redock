@@ -140,6 +140,44 @@ test('remembers the minimized state', () => {
   expect(document.querySelector('.sakana-redock').classList).toContain('sakana-redock--minimized');
 });
 
+test('arrow keys on the minimized chip move the dock without restoring it', () => {
+  const dock = mount().minimize();
+  const root = document.querySelector('.sakana-redock');
+  const restore = root.querySelector('.sakana-redock-restore');
+
+  restore.dispatchEvent(new browser.KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+  expect(dock.minimized).toBe(true);
+  expect(root.style.bottom).toBe('auto');
+  expect(JSON.parse(localStorage.getItem('sakana-redock-position')).y).toBeNumber();
+});
+
+test('dragging the minimized chip moves the dock and does not restore it', () => {
+  const dock = mount().minimize();
+  const root = document.querySelector('.sakana-redock');
+  const restore = root.querySelector('.sakana-redock-restore');
+  const pointer = (type, x, y) =>
+    restore.dispatchEvent(
+      new browser.PointerEvent(type, { pointerId: 1, button: 0, clientX: x, clientY: y }),
+    );
+
+  pointer('pointerdown', 300, 300);
+  pointer('pointermove', 200, 150);
+  expect(root.classList.contains('sakana-redock--moving')).toBe(true);
+  pointer('pointerup', 200, 150);
+  restore.click();
+
+  expect(dock.minimized).toBe(true);
+  expect(root.classList.contains('sakana-redock--moving')).toBe(false);
+  expect(root.style.top).not.toBe('');
+  expect(JSON.parse(localStorage.getItem('sakana-redock-position')).y).toBeNumber();
+
+  // a plain tap still restores
+  pointer('pointerdown', 200, 150);
+  pointer('pointerup', 201, 150);
+  restore.click();
+  expect(dock.minimized).toBe(false);
+});
+
 test('arrow keys on the move handle nudge and save the dock', () => {
   mount();
   const root = document.querySelector('.sakana-redock');

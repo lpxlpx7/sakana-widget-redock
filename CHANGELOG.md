@@ -1,3 +1,7 @@
+## Unreleased
+
+- feat: drag the minimized chip (or nudge it with arrow keys) to move the dock; a tap still restores it
+
 ## v0.2.0
 
 - refactor: rewrite in TypeScript and adopt the Sakana! Widget repository layout (Bun, tsdown, oxlint, oxfmt)

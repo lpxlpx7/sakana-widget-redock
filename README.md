@@ -11,7 +11,7 @@
 
 <https://lpxlpx7.github.io/sakana-widget-redock/>
 
-A movable and minimizable dock for [Sakana! Widget](https://github.com/dsrkafuu/sakana-widget). Keeps the original character interaction and wraps it in a desktop-style dock.
+A dock for [Sakana! Widget](https://github.com/dsrkafuu/sakana-widget) that you can drag around the page and shrink into a small avatar. The character inside is the original widget, so you can still fling it and watch it swing on its rod.
 
 > This is an unofficial modification and is not maintained or endorsed by the original Sakana! Widget project.
 
@@ -21,7 +21,8 @@ A movable and minimizable dock for [Sakana! Widget](https://github.com/dsrkafuu/
 - A monochrome stand replaces the original control bar; click it to switch characters
 - Move the dock with a hover-revealed drag handle, or nudge it with arrow keys
 - Keep the dock inside the visible viewport, even after resizing
-- Minimize into a small avatar chip with a spring animation, restore any number of times without destroying the widget state
+- Minimize into a small avatar chip and restore it as often as you like; the widget is never recreated
+- Drag the minimized chip anywhere on screen, or tap it to bring the dock back
 - Save the dock position and minimized state via localStorage
 - Themable with CSS custom properties, respects `prefers-reduced-motion`
 - Responsive size for smaller screens
@@ -128,6 +129,8 @@ To bring the original control bar back, pass `sakana: { controls: true }`. Its c
 ## Minimize & Restore
 
 Click the minus button in the toolbar or call `minimize()`: the dock shrinks into its stand and a small chip with the character avatar pops up in its place. Click the chip or call `restore()` to bring the dock back.
+
+You can move the chip the same way as the dock, by dragging it or by focusing it and pressing the arrow keys. A short tap still restores. If you parked the chip in a corner where the full dock does not fit, restoring pulls the dock back inside the viewport.
 
 Minimizing only hides the dock. The inner widget is not unmounted or recreated, so its character and motion state stay intact. Keyboard focus moves between the minimize button and the chip.
 
